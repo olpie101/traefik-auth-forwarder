@@ -1,0 +1,4 @@
+# Now copy it into our base image.
+FROM gcr.io/distroless/base-debian10
+COPY traefik-auth-forwarder /
+CMD ["/traefik-auth-forwarder"]
