@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	proxymiddleware "github.com/olpie101/traefik-auth-forwarder/server/middleware"
 	"go.uber.org/zap"
 )
 
@@ -68,11 +69,21 @@ func New(c *http.Client, cfg Config, logger *zap.SugaredLogger) (http.Handler, e
 	}
 
 	srv.copyHeaders = copyHeaders
-	srv.logger.Infow("created routes", "forward-url", srv.decisionUrl, "headers", srv.copyHeaders)
-	r.Handle("/decision/*", srv.decisionHandler())
+	metricsMiddleware, metricsHandler, err := proxymiddleware.PrometheusHandler(xForwardedHost)
+	if err != nil {
+		return nil, err
+	}
+
+	r.Route("/decision", func(r chi.Router) {
+		r.Use(metricsMiddleware)
+		r.Handle("/*", srv.decisionHandler())
+	})
 	r.Get("/health", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	})
+	r.Get("/metrics", metricsHandler)
+
+	srv.logger.Infow("created routes", "forward-url", srv.decisionUrl, "headers", srv.copyHeaders)
 	return r, nil
 }
 
