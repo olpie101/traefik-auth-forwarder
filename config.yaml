@@ -1,0 +1,4 @@
+address: ":8080"
+forwardAddress: "https://httpbin.org/headers"
+headers:
+  - "X-Test-Header"
